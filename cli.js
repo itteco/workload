@@ -7,11 +7,20 @@ var argv = require('minimist')(process.argv.slice(2))
 var csv = require('csv-line')
 var Workload = require('./')
 var pkg = require('./package')
+var fs = require('fs')
 
 var FILTERS = {
   WD: Workload.stdFilters.workdays,
   WH: Workload.stdFilters.workingHours,
   EX: Workload.stdFilters.expand
+}
+
+function getFilenameDateString() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day =`${date.getDate()}`.padStart(2, '0');
+  return `${year}${month}${day}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`
 }
 
 if (argv.h || argv.help) help()
@@ -20,6 +29,7 @@ else if (argv.f || argv.file || argv._.length) run()
 else invalid()
 
 function run () {
+  var data_file = {}
   var file = argv.f || argv.file
   var opts
   if (file) {
@@ -49,16 +59,86 @@ function run () {
     })
   }
 
-  var workload = new Workload(opts)
+  var total = 0;
+  var bad = 0;
+  var hits = {};
+  var start_time = new Date();
+  var time_diff = [];
 
-  if (!argv.silent) {
-    workload.on('visit', function (visit) {
-      var method = visit.request.method || 'GET'
-      var url = visit.request.url
-      var code = visit.response.statusCode
-      console.log('%d %s %s %s', code, http.STATUS_CODES[code], method, url)
-    })
-  }
+  var workload = new Workload(opts);
+
+  workload.on('error', function(err) {
+    bad += 1;
+    if (!argv.silent) {
+      console.log("\x1b[31m", start_time, err)
+    }
+  });
+
+  workload.on('visit', function(visit) {
+    const date =  new Date().toISOString().substr(11, 8);
+    if (hits[date]) {
+      hits[date]++
+    } else {
+      hits[date] = 1
+    }
+    total++;
+    time_diff.push(visit.time);
+    if (!argv.silent) {
+        var method = visit.request.method || 'GET'
+        var url = visit.request.url
+        var code = visit.response.statusCode
+        console.log("\x1b[32m", '%d %s %s %s', code, http.STATUS_CODES[code], method, url)
+    }
+
+  });
+
+  workload.on('stop', function(data) {
+    const arrAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
+    var timeDiff = data.time - start_time;
+    timeDiff /= 1000;
+    var ran_seconds = Math.round(timeDiff);
+    var avgreq = Math.round(arrAvg(time_diff));
+    var avghits = arrAvg(Object.values(hits));
+    var url = opts.requests[0].url;
+    if (!opts.silent) {
+      console.log("\x1b[34m", 'Url: ' + url);
+      console.log("\x1b[34m", 'Total requests:', total);
+      console.log("\x1b[34m", 'start:', start_time);
+      console.log("\x1b[34m", 'finish:', data.time);
+      console.log('Avg r/s: ', avghits);
+      console.log('Ran for: ', ran_seconds + " seconds");
+      console.log('Avg req/time: ', avgreq);
+      console.log("\x1b[34m", 'Random url: ', opts.random_url);
+    }
+    data_file.total_requests = total;
+    data_file.test_start = start_time;
+    data_file.test_finish = data.time;
+    data_file.averege_requests = avghits;
+    data_file.ran_for = ran_seconds;
+    data_file.avg_req_time = avgreq;
+    data_file.url = opts.requests[0];
+    data_file.random = opts.random_url;
+  });
+
+
+  // stop fuse switch in micro seconds.
+  // e.g. 10000 === 10 seconds
+  setTimeout(function () {
+    workload.stop();
+    setTimeout(function () {
+      if (!opts.silent) {
+        console.log("\x1b[31m", 'Bad requests:', bad);
+      }
+      data_file.bad_requests = bad;
+
+      if (opts.save_stats) {
+        fs.writeFile(`results-${getFilenameDateString()}.json`, JSON.stringify(data_file, null, 2), 'utf8', (err) => {
+          if (err) throw err;
+          console.log('Data written to file');
+        });
+      }
+    }, opts.run_for * 1000 + 120000); // Wit for Bad requests for 2 minutes more
+  }, opts.run_for * 1000);
 }
 
 function parseHeaders (lines) {

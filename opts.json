@@ -1,0 +1,14 @@
+{
+  "max": 1,
+  "run_for": 1,
+  "filers": [],
+  "requests": [
+    {
+      "url": "iframely embed url without api key"
+    }
+  ],
+  "random_url": true,
+  "api_key": "my iframely api key",
+  "save_stats": true,
+  "silent": false
+}

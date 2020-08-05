@@ -1,4 +1,40 @@
-# workload
+# workload for iframely
+
+YG: test command for refference:
+
+```sh
+node cli.js -f ./opts.json --silent
+```
+in the module directory.
+There are two silent in here and options json.
+Not providing silent here would result to output of all requests and their results to manually parse data for e.g.
+Silent in options object is responsible for results display.
+
+E.g. `options.json` for testing: 
+```json
+{
+  "max": 108000,
+  "run_for": 1,
+  "filers": [],
+  "requests": [
+    {
+      "url": "iframely url without api key and params"
+    }
+  ],
+  "random_url": true,
+  "api_key": "my iframely key",
+  "save_stats": true,
+  "silent": false
+}
+```
+- random key is added on specifying `"random_url"` options param
+- `"api_key"` is only added to url on specifying this value
+- `"run_for"` test run for number of seconds
+- `"max"` is maximum requests per minute e.g. per second == this value \ 60
+- `"save_stats"` is option to write Results json file
+- `"silent"` is mute screen print of total test results
+
+# Genue Lib help ahead:
 
 Sends HTTP requests to a server to mimic a natual load.
 

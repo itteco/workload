@@ -30,6 +30,12 @@ function Workload (opts) {
 
   this._timer = setInterval(function () {
     var req = xtend({}, weighted.select(opts.requests, weights))
+    if (opts.random_url) {
+      req.url = req.url + "%3Fx%3D"+ Math.random();
+    }
+    if (opts.api_key) {
+      req.url = req.url + "&api_key=" + opts.api_key;
+    }
     iterator(req)
   }, interval)
 
@@ -62,19 +68,24 @@ Workload.stdFilters = {
 
 Workload.prototype.stop = function stop () {
   clearInterval(this._timer)
+  this.emit('stop', {
+    time: new Date(),
+  })
 }
 
 Workload.prototype._visit = function _visit (req) {
   var self = this
-
+  var time = Date.now()
   req.headers = xtend({'user-agent': USER_AGENT}, this._defaultHeaders, req.headers)
 
   request(req, function (err, res, body) {
     if (err) return self.emit('error', err)
+    var time_diff = Date.now() - time
     self.emit('visit', {
       request: req,
       response: res,
-      body: body
+      body: body,
+      time: time_diff
     })
   })
 }
