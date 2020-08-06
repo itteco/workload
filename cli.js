@@ -16,11 +16,7 @@ var FILTERS = {
 }
 
 function getFilenameDateString() {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day =`${date.getDate()}`.padStart(2, '0');
-  return `${year}${month}${day}-${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}`
+  return new Date().toISOString().replace(/[T:.]/gi, '-');
 }
 
 if (argv.h || argv.help) help()
@@ -93,8 +89,15 @@ function run () {
   });
 
   workload.on('stop', function(data) {
+    if (!opts.silent) {
+      console.log('stopped sending requests, waiting finish all')
+    }
+  });
+
+  workload.on('finish', function() {
+    const finishTime = new Date();
     const arrAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
-    var timeDiff = data.time - start_time;
+    var timeDiff = finishTime - start_time;
     timeDiff /= 1000;
     var ran_seconds = Math.round(timeDiff);
     var avgreq = Math.round(arrAvg(time_diff));
@@ -102,23 +105,35 @@ function run () {
     var url = opts.requests[0].url;
     var random = /{{random}}/gi.test(url);
     if (!opts.silent) {
-      console.log("\x1b[34m", 'Url: ' + url);
-      console.log("\x1b[34m", 'Total requests:', total);
-      console.log("\x1b[34m", 'start:', start_time);
-      console.log("\x1b[34m", 'finish:', data.time);
+      console.log('Url: ' + url);
+      console.log('Total requests:', total);
+      console.log('start:', start_time);
+      console.log('finish:', finishTime);
       console.log('Avg r/s: ', avghits);
       console.log('Ran for: ', ran_seconds + " seconds");
       console.log('Avg req/time: ', avgreq);
-      console.log("\x1b[34m", 'Random url: ', random);
+      console.log('Random url: ', random);
     }
     data_file.total_requests = total;
     data_file.test_start = start_time;
-    data_file.test_finish = data.time;
+    data_file.test_finish = finishTime;
     data_file.averege_requests = avghits;
     data_file.test_duration_sec = ran_seconds;
     data_file.avg_req_time = avgreq;
     data_file.url = opts.requests[0];
     data_file.random = random;
+
+    if (!opts.silent) {
+      console.log('Bad requests:', bad);
+    }
+    data_file.bad_requests = bad;
+
+    if (opts.save_stats) {
+      fs.writeFile(`results-${getFilenameDateString()}.json`, JSON.stringify(data_file, null, 2), 'utf8', (err) => {
+        if (err) throw err;
+        console.log('Data written to file');
+      });
+    }
   });
 
 
@@ -126,19 +141,6 @@ function run () {
   // e.g. 10000 === 10 seconds
   setTimeout(function () {
     workload.stop();
-    setTimeout(function () {
-      if (!opts.silent) {
-        console.log("\x1b[31m", 'Bad requests:', bad);
-      }
-      data_file.bad_requests = bad;
-
-      if (opts.save_stats) {
-        fs.writeFile(`results-${getFilenameDateString()}.json`, JSON.stringify(data_file, null, 2), 'utf8', (err) => {
-          if (err) throw err;
-          console.log('Data written to file');
-        });
-      }
-    }, opts.test_duration_sec * 1000 + 120000); // Wit for Bad requests for 2 minutes more
   }, opts.test_duration_sec * 1000);
 }
 

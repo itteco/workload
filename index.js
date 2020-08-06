@@ -19,20 +19,52 @@ function Workload (opts) {
 
   EventEmitter.call(this)
 
+  this.sentRequests = 0
+  this.finishedRequests = 0
+
   var self = this
-  var interval = Math.round(1000 / ((opts.max || 12) / 60)) // default to max 12 requests per minute
-  var filters = opts.filters || []
+  var realInterval = 1000 / ((opts.max || 12) / 60) // default to max 12 requests per minute
+  var reqPerMs = 1 / realInterval
+  var interval = Math.round(realInterval)
+  var maxSpeed = interval <= 1
+  var filters = opts.filters || [opts.filter || function (_, cb) { cb() }]
   this._defaultHeaders = opts.headers
 
   var weights = opts.requests.map(function (req) {
     return req.weight || 1
   })
 
-  this._timer = setInterval(function () {
+  var startTime = Date.now()
+
+  var makeRequestNextTick = function() {
+    if (!self._timer) return
+    var expectedRequests = (Date.now() - startTime) * reqPerMs
+    if (self.sentRequests > expectedRequests) {
+      setTimeout(makeRequestNextTick, 1) // Maintain speed.
+    } else {
+      if (self.sentRequests % 500 === 0) {
+        setTimeout(makeRequest, 1) // Allow other logic do their events.
+      } else {
+        process.nextTick(makeRequest)    
+      }
+    }
+  }
+
+  var makeRequest = function() {
     var req = xtend({}, weighted.select(opts.requests, weights))
-    req.url = req.url.replace(/{{random}}/gi, Math.random());
+    req.url = req.url.replace(/{{random}}/gi, Math.random())
     iterator(req)
-  }, interval)
+    if (maxSpeed) {
+      makeRequestNextTick()
+    }
+  }
+
+  if (maxSpeed) {
+    this._timer = true
+    makeRequestNextTick()
+  } else {
+    this._timer = setInterval(makeRequest, interval)
+  }
 
   function iterator (req, n) {
     if (!n) n = 0
@@ -63,6 +95,8 @@ Workload.stdFilters = {
 
 Workload.prototype.stop = function stop () {
   clearInterval(this._timer)
+  // Assign `null` for explicit check.
+  this._timer = null
   this.emit('stop', {
     time: new Date(),
   })
@@ -73,14 +107,27 @@ Workload.prototype._visit = function _visit (req) {
   var time = Date.now()
   req.headers = xtend({'user-agent': USER_AGENT}, this._defaultHeaders, req.headers)
 
+  this.sentRequests++
+
+  if (this.sentRequests % 1000 === 0) console.log('Sent requests:', this.sentRequests)
+  
   request(req, function (err, res, body) {
-    if (err) return self.emit('error', err)
-    var time_diff = Date.now() - time
-    self.emit('visit', {
-      request: req,
-      response: res,
-      body: body,
-      time: time_diff
-    })
+    self.finishedRequests++
+
+    if (err) {
+      self.emit('error', err)
+    } else {
+      var time_diff = Date.now() - time
+      self.emit('visit', {
+        request: req,
+        response: res,
+        body: body,
+        time: time_diff
+      }) 
+    }
+
+    if (!self._timer && self.finishedRequests === self.sentRequests) {
+      self.emit('finish')
+    }
   })
 }
