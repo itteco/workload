@@ -100,6 +100,7 @@ function run () {
     var avgreq = Math.round(arrAvg(time_diff));
     var avghits = arrAvg(Object.values(hits));
     var url = opts.requests[0].url;
+    var random = /{{random}}/gi.test(url);
     if (!opts.silent) {
       console.log("\x1b[34m", 'Url: ' + url);
       console.log("\x1b[34m", 'Total requests:', total);
@@ -108,7 +109,7 @@ function run () {
       console.log('Avg r/s: ', avghits);
       console.log('Ran for: ', ran_seconds + " seconds");
       console.log('Avg req/time: ', avgreq);
-      console.log("\x1b[34m", 'Random url: ', opts.random_url);
+      console.log("\x1b[34m", 'Random url: ', random);
     }
     data_file.total_requests = total;
     data_file.test_start = start_time;
@@ -117,7 +118,7 @@ function run () {
     data_file.ran_for = ran_seconds;
     data_file.avg_req_time = avgreq;
     data_file.url = opts.requests[0];
-    data_file.random = opts.random_url;
+    data_file.random = random;
   });
 
 

@@ -18,17 +18,13 @@ E.g. `options.json` for testing:
   "filers": [],
   "requests": [
     {
-      "url": "iframely url without api key and params"
+      "url": "iframely url without api key and params {{random}} is replaced by random value"
     }
   ],
-  "random_url": true,
-  "api_key": "my iframely key",
   "save_stats": true,
   "silent": false
 }
 ```
-- random key is added on specifying `"random_url"` options param
-- `"api_key"` is only added to url on specifying this value
 - `"run_for"` test run for number of seconds
 - `"max"` is maximum requests per minute e.g. per second == this value \ 60
 - `"save_stats"` is option to write Results json file

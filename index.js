@@ -30,12 +30,7 @@ function Workload (opts) {
 
   this._timer = setInterval(function () {
     var req = xtend({}, weighted.select(opts.requests, weights))
-    if (opts.random_url) {
-      req.url = req.url + "%3Fx%3D"+ Math.random();
-    }
-    if (opts.api_key) {
-      req.url = req.url + "&api_key=" + opts.api_key;
-    }
+    req.url = req.url.replace(/{{random}}/gi, Math.random());
     iterator(req)
   }, interval)
 
