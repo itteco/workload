@@ -21,7 +21,7 @@ function Workload (opts) {
 
   var self = this
   var interval = Math.round(1000 / ((opts.max || 12) / 60)) // default to max 12 requests per minute
-  var filters = opts.filters || [opts.filter || function (_, cb) { cb() }]
+  var filters = opts.filters || []
   this._defaultHeaders = opts.headers
 
   var weights = opts.requests.map(function (req) {
