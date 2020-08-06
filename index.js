@@ -39,8 +39,9 @@ function Workload (opts) {
   var makeRequestNextTick = function() {
     if (!self._timer) return
     var expectedRequests = (Date.now() - startTime) * reqPerMs
-    if (self.sentRequests > expectedRequests) {
-      setTimeout(makeRequestNextTick, 1) // Maintain speed.
+    var requestsOver = self.sentRequests - expectedRequests;
+    if (requestsOver > 0) {
+      setTimeout(makeRequestNextTick, Math.round(requestsOver * realInterval) + 1) // Maintain speed.
     } else {
       if (self.sentRequests % 500 === 0) {
         setTimeout(makeRequest, 1) // Allow other logic do their events.
@@ -54,17 +55,11 @@ function Workload (opts) {
     var req = xtend({}, weighted.select(opts.requests, weights))
     req.url = req.url.replace(/{{random}}/gi, Math.random())
     iterator(req)
-    if (maxSpeed) {
-      makeRequestNextTick()
-    }
+    makeRequestNextTick()
   }
 
-  if (maxSpeed) {
-    this._timer = true
-    makeRequestNextTick()
-  } else {
-    this._timer = setInterval(makeRequest, interval)
-  }
+  this._timer = true
+  makeRequestNextTick()
 
   function iterator (req, n) {
     if (!n) n = 0
@@ -94,7 +89,6 @@ Workload.stdFilters = {
 }
 
 Workload.prototype.stop = function stop () {
-  clearInterval(this._timer)
   // Assign `null` for explicit check.
   this._timer = null
   this.emit('stop', {
