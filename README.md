@@ -14,19 +14,19 @@ E.g. `options.json` for testing:
 ```json
 {
   "max": 108000,
-  "run_for": 1,
+  "test_duration_sec": 1,
   "filers": [],
   "requests": [
     {
-      "url": "iframely url without api key and params {{random}} is replaced by random value"
+      "url": "iframely generated url {{random}} is replaced by random value"
     }
   ],
   "save_stats": true,
   "silent": false
 }
 ```
-- `"run_for"` test run for number of seconds
-- `"max"` is maximum requests per minute e.g. per second == this value \ 60
+- `"test_duration_sec"` test run for number of seconds
+- `"max"` is maximum requests per minute e.g. per second == this value \ 60 (108000 == 1800 requests per second)
 - `"save_stats"` is option to write Results json file
 - `"silent"` is mute screen print of total test results
 
