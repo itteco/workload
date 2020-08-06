@@ -115,7 +115,7 @@ function run () {
     data_file.test_start = start_time;
     data_file.test_finish = data.time;
     data_file.averege_requests = avghits;
-    data_file.ran_for = ran_seconds;
+    data_file.test_duration_sec = ran_seconds;
     data_file.avg_req_time = avgreq;
     data_file.url = opts.requests[0];
     data_file.random = random;
@@ -138,8 +138,8 @@ function run () {
           console.log('Data written to file');
         });
       }
-    }, opts.run_for * 1000 + 120000); // Wit for Bad requests for 2 minutes more
-  }, opts.run_for * 1000);
+    }, opts.test_duration_sec * 1000 + 120000); // Wit for Bad requests for 2 minutes more
+  }, opts.test_duration_sec * 1000);
 }
 
 function parseHeaders (lines) {
