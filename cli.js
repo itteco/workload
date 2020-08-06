@@ -62,9 +62,17 @@ function run () {
   var time_diff = [];
 
   var workload = new Workload(opts);
+  var errors = {};
 
   workload.on('error', function(err) {
     bad += 1;
+    if (err.message) {
+      if (err.message in errors) {
+        errors[err.message]++;
+      } else {
+        errors[err.message] = 1;
+      }
+    }
     if (!argv.silent) {
       console.log("\x1b[31m", start_time, err)
     }
@@ -125,6 +133,7 @@ function run () {
 
     if (!opts.silent) {
       console.log('Bad requests:', bad);
+      console.log('Bad requests errors count:', JSON.stringify(errors, null, 2));
     }
     data_file.bad_requests = bad;
 
