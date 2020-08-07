@@ -113,6 +113,8 @@ function run () {
     var random = /{{random}}/gi.test(url);
     if (!opts.silent) {
       console.log('Url: ' + url);
+      console.log('Options - max per sec: ' + Math.round(opts.max / 60));
+      console.log('Options - requested duration sec: ' + opts.test_duration_sec);
       console.log('Total requests:', total);
       console.log('start:', start_time);
       console.log('finish:', finishTime);
@@ -121,6 +123,8 @@ function run () {
       console.log('Avg req/time: ', avgreq);
       console.log('Random url: ', random);
     }
+    data_file.max_req_per_sec = Math.round(opts.max / 60);
+    data_file.test_duration_sec = opts.test_duration_sec;
     data_file.total_requests = total;
     data_file.test_start = start_time;
     data_file.test_finish = finishTime;
