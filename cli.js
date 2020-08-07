@@ -67,11 +67,7 @@ function run () {
   workload.on('error', function(err) {
     bad += 1;
     var message = err.message || (err + '');
-    if (message in errors) {
-      errors[message]++;
-    } else {
-      errors[message] = 1;
-    }
+    registerError(message)
     if (!argv.silent) {
       console.log("\x1b[31m", start_time, err)
     }
@@ -93,7 +89,20 @@ function run () {
         console.log("\x1b[32m", '%d %s %s %s', code, http.STATUS_CODES[code], method, url)
     }
 
+    var statusCode = visit.response.statusCode
+    if (statusCode !== 200) {
+      registerError(statusCode)
+    }
+
   });
+
+  function registerError(info) {
+    if (info in errors) {
+      errors[info]++;
+    } else {
+      errors[info] = 1;
+    } 
+  }
 
   workload.on('stop', function(data) {
     if (!opts.silent) {
