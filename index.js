@@ -69,6 +69,10 @@ function Workload (opts) {
       iterator(modified || req, ++n)
     })
   }
+
+  this.logTimer = setInterval(function() {
+    console.log('[' +  new Date().toISOString() + ']', 'Finished/sent requests:', self.finishedRequests, '/', self.sentRequests)
+  }, 1000)
 }
 
 util.inherits(Workload, EventEmitter)
@@ -96,6 +100,11 @@ Workload.prototype.stop = function stop () {
   })
 }
 
+Workload.prototype.finish = function finish () {
+  clearInterval(this.logTimer)
+  this.emit('finish')
+}
+
 Workload.prototype._visit = function _visit (req) {
   var self = this
   var time = Date.now()
@@ -103,8 +112,8 @@ Workload.prototype._visit = function _visit (req) {
 
   this.sentRequests++
 
-  if (this.sentRequests % 1000 === 0) console.log('Sent requests:', this.sentRequests)
-  
+  req.timeout = 30 * 1000;
+
   request(req, function (err, res, body) {
     self.finishedRequests++
 
@@ -121,7 +130,7 @@ Workload.prototype._visit = function _visit (req) {
     }
 
     if (!self._timer && self.finishedRequests === self.sentRequests) {
-      self.emit('finish')
+      self.finish()
     }
   })
 }

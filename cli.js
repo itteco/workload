@@ -66,12 +66,11 @@ function run () {
 
   workload.on('error', function(err) {
     bad += 1;
-    if (err.message) {
-      if (err.message in errors) {
-        errors[err.message]++;
-      } else {
-        errors[err.message] = 1;
-      }
+    var message = err.message || (err + '');
+    if (message in errors) {
+      errors[message]++;
+    } else {
+      errors[message] = 1;
     }
     if (!argv.silent) {
       console.log("\x1b[31m", start_time, err)
@@ -133,9 +132,10 @@ function run () {
 
     if (!opts.silent) {
       console.log('Bad requests:', bad);
-      console.log('Bad requests errors count:', JSON.stringify(errors, null, 2));
+      console.log('Bad requests details:', JSON.stringify(errors, null, 2));
     }
     data_file.bad_requests = bad;
+    data_file.bad_requests_details = errors;
 
     if (opts.save_stats) {
       fs.writeFile(`results-${getFilenameDateString()}.json`, JSON.stringify(data_file, null, 2), 'utf8', (err) => {
